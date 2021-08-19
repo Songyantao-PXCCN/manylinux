@@ -9,17 +9,17 @@ set -exuo pipefail
 # docker run -it --rm arm32v7/centos:7
 # docker pull arm32v7/debian:9
 #
-POLICY="manylinux_2_24"
-COMMIT_SHA="latest6"
-PLATFORM="armv7l"
-MULTIARCH_PREFIX="arm32v7/"
-BASEIMAGE="${MULTIARCH_PREFIX}debian:9"
-
 #POLICY="manylinux_2_24"
 #COMMIT_SHA="latest6"
-#PLATFORM="x86_64"
-#MULTIARCH_PREFIX="amd64/"
+#PLATFORM="armv7l"
+#MULTIARCH_PREFIX="arm32v7/"
 #BASEIMAGE="${MULTIARCH_PREFIX}debian:9"
+
+POLICY="manylinux_2_24"
+COMMIT_SHA="latest6"
+PLATFORM="x86_64"
+MULTIARCH_PREFIX="amd64/"
+BASEIMAGE="${MULTIARCH_PREFIX}debian:9"
 
 
 
@@ -38,9 +38,8 @@ export PREPEND_PATH
 export LD_LIBRARY_PATH_ARG
 
 BUILD_ARGS_COMMON="
-	--build-arg POLICY --build-arg PLATFORM --build-arg BASEIMAGE
-	--build-arg DEVTOOLSET_ROOTPATH --build-arg PREPEND_PATH --build-arg LD_LIBRARY_PATH_ARG
-	--rm -t plcnext/arm/pypa/${POLICY}_${PLATFORM}:${COMMIT_SHA}
+	--build-arg POLICY=${POLICY} --build-arg PLATFORM=${PLATFORM} --build-arg BASEIMAGE=${BASEIMAGE}
+	--rm -t plcnext/pypa/${POLICY}_${PLATFORM}:${COMMIT_SHA}
 	-f docker/Dockerfile docker/
 "
 

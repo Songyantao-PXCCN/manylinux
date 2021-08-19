@@ -106,7 +106,7 @@ elif [ "${AUDITWHEEL_POLICY}" == "manylinux_2_24" ]; then
 	sed -i 's/none/en_US/g' /etc/apt/apt.conf.d/docker-no-languages
 	apt-get update -qq
 	apt-get upgrade -qq -y
-	apt-get install -qq -y --no-install-recommends ca-certificates gpg curl locales
+	apt-get install -y --no-install-recommends ca-certificates gpg curl locales
 	TOOLCHAIN_DEPS="binutils gcc g++ gfortran"
 else
 	echo "Unsupported policy: '${AUDITWHEEL_POLICY}'"
@@ -116,6 +116,7 @@ fi
 if [ "${PACKAGE_MANAGER}" == "yum" ]; then
 	yum -y install ${BASETOOLS} ${TOOLCHAIN_DEPS} ${MANYLINUX_DEPS} ${RUNTIME_DEPS}
 elif [ "${PACKAGE_MANAGER}" == "apt" ]; then
+  apt-get update -qq
 	apt-get install -qq -y --no-install-recommends ${BASETOOLS} ${TOOLCHAIN_DEPS} ${MANYLINUX_DEPS} ${RUNTIME_DEPS}
 else
 	echo "Not implemented"

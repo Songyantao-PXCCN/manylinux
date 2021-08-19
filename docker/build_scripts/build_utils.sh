@@ -29,7 +29,8 @@ function fetch_source {
     if [ -f ${file} ]; then
         echo "${file} exists, skipping fetch"
     else
-        curl -fsSL -o ${file} ${url}/${file}
+#        curl -fsSL -o ${file} ${url}/${file}
+        curl --socks5 192.168.1.100:10808 -fsSL -o ${file} ${url}/${file}
     fi
 }
 
@@ -48,7 +49,7 @@ function check_sha256sum {
 
 function do_standard_install {
     ./configure "$@" CPPFLAGS="${MANYLINUX_CPPFLAGS}" CFLAGS="${MANYLINUX_CFLAGS}" "CXXFLAGS=${MANYLINUX_CXXFLAGS}" LDFLAGS="${MANYLINUX_LDFLAGS}" > /dev/null
-    make > /dev/null
+    make -j10 > /dev/null
     make install > /dev/null
 }
 

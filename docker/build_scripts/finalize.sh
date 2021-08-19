@@ -15,7 +15,9 @@ for PREFIX in $(find /opt/_internal/ -mindepth 1 -maxdepth 1 \( -name 'cpython*'
 	# bin/python.
 	if [ -e ${PREFIX}/bin/python3 ] && [ ! -e ${PREFIX}/bin/python ]; then
 		ln -s python3 ${PREFIX}/bin/python
+		echo ${PREFIX}/lib >> /etc/ld.so.conf
 	fi
+	ldconfig
 	${PREFIX}/bin/python -m ensurepip
 	if [ -e ${PREFIX}/bin/pip3 ] && [ ! -e ${PREFIX}/bin/pip ]; then
 		ln -s pip3 ${PREFIX}/bin/pip
@@ -23,7 +25,8 @@ for PREFIX in $(find /opt/_internal/ -mindepth 1 -maxdepth 1 \( -name 'cpython*'
 	PY_VER=$(${PREFIX}/bin/python -c "import sys; print('.'.join(str(v) for v in sys.version_info[:2]))")
 	# Since we fall back on a canned copy of pip, we might not have
 	# the latest pip and friends. Upgrade them to make sure.
-	${PREFIX}/bin/pip install -U --require-hashes -r ${MY_DIR}/requirements${PY_VER}.txt
+	${PREFIX}/bin/pip install --proxy=http://192.168.1.100:10809 -U --require-hashes -r ${MY_DIR}/requirements${PY_VER}.txt
+#  ${PREFIX}/bin/pip install --proxy=http://192.168.1.100:10809 PyInstaller
 	# Create a symlink to PREFIX using the ABI_TAG in /opt/python/
 	ABI_TAG=$(${PREFIX}/bin/python ${MY_DIR}/python-tag-abi-tag.py)
 	ln -s ${PREFIX} /opt/python/${ABI_TAG}
@@ -41,9 +44,9 @@ TOOLS_PATH=/opt/_internal/tools
 source $TOOLS_PATH/bin/activate
 
 # Install default packages
-pip install -U --require-hashes -r $MY_DIR/requirements3.9.txt
+pip install -U --require-hashes --proxy=http://192.168.1.100:10809 -r $MY_DIR/requirements3.9.txt
 # Install certifi and pipx
-pip install -U --require-hashes -r $MY_DIR/requirements-base-tools.txt
+pip install -U --require-hashes --proxy=http://192.168.1.100:10809 -r $MY_DIR/requirements-base-tools.txt
 
 # Make pipx available in PATH,
 # Make sure when root installs apps, they're also in the PATH
@@ -71,6 +74,9 @@ export SSL_CERT_FILE=/opt/_internal/certs.pem
 # Deactivate the tools virtual environment
 deactivate
 
+apt update -qq -y
+apt install -y cmake
+
 # install other tools with pipx
 pushd $MY_DIR/requirements-tools
 for TOOL_PATH in $(find . -type f); do
@@ -89,3 +95,5 @@ hardlink -cv /opt/_internal
 
 # update system packages
 LC_ALL=C ${MY_DIR}/update-system-packages.sh
+
+# pipx install --verbose --pip-args=" --verbose --no-binary cmake  --proxy http://192.168.1.100:10809" cmake

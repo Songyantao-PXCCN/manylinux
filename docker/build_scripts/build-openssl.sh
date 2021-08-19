@@ -28,18 +28,23 @@ fi
 if which yum; then
 	yum erase -y openssl-devel
 else
-	apt-get remove -y libssl-dev
+	apt-get remove -y libssl-dev openssl
 fi
 
 fetch_source ${OPENSSL_ROOT}.tar.gz ${OPENSSL_DOWNLOAD_URL}
 check_sha256sum ${OPENSSL_ROOT}.tar.gz ${OPENSSL_HASH}
 tar -xzf ${OPENSSL_ROOT}.tar.gz
 pushd ${OPENSSL_ROOT}
-./config no-shared --prefix=/usr/local/ssl --openssldir=/usr/local/ssl CPPFLAGS="${MANYLINUX_CPPFLAGS}" CFLAGS="${MANYLINUX_CFLAGS} -fPIC" CXXFLAGS="${MANYLINUX_CXXFLAGS} -fPIC" LDFLAGS="${MANYLINUX_LDFLAGS} -fPIC" > /dev/null
-make > /dev/null
+./config --prefix=/usr/local --openssldir=/usr/local CPPFLAGS="${MANYLINUX_CPPFLAGS}" CFLAGS="${MANYLINUX_CFLAGS} -fPIC" CXXFLAGS="${MANYLINUX_CXXFLAGS} -fPIC" LDFLAGS="${MANYLINUX_LDFLAGS} -fPIC" > /dev/null
+make -j10 > /dev/null
 make install_sw > /dev/null
+make install_sw DESTDIR=/manylinux-rootfs > /dev/null
+ldconfig
+# Strip what we can
+strip_ /manylinux-rootfs
+
 popd
 rm -rf ${OPENSSL_ROOT} ${OPENSSL_ROOT}.tar.gz
 
 
-/usr/local/ssl/bin/openssl version
+/usr/local/bin/openssl version

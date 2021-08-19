@@ -1,10 +1,17 @@
 # default to latest supported policy, x86_64
-ARG BASEIMAGE=amd64/debian:9
+ARG BASEIMAGE=
 ARG POLICY=manylinux_2_24
-ARG PLATFORM=x86_64
+ARG PLATFORM=
 ARG DEVTOOLSET_ROOTPATH=
 ARG LD_LIBRARY_PATH_ARG=
 ARG PREPEND_PATH=
+
+#ARG BASEIMAGE=amd64/debian:9
+#ARG POLICY=manylinux_2_24
+#ARG PLATFORM=x86_64
+#ARG DEVTOOLSET_ROOTPATH=
+#ARG LD_LIBRARY_PATH_ARG=
+#ARG PREPEND_PATH=
 
 FROM $BASEIMAGE AS runtime_base
 ARG POLICY
@@ -12,7 +19,7 @@ ARG PLATFORM
 ARG DEVTOOLSET_ROOTPATH
 ARG LD_LIBRARY_PATH_ARG
 ARG PREPEND_PATH
-LABEL maintainer="The ManyLinux project"
+LABEL maintainer=PhoenixContact
 
 ENV AUDITWHEEL_POLICY=${POLICY} AUDITWHEEL_ARCH=${PLATFORM} AUDITWHEEL_PLAT=${POLICY}_${PLATFORM}
 ENV LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8 LANGUAGE=en_US.UTF-8
@@ -21,11 +28,25 @@ ENV LD_LIBRARY_PATH=${LD_LIBRARY_PATH_ARG}
 ENV PATH=${PREPEND_PATH}${PATH}
 ENV PKG_CONFIG_PATH=/usr/local/lib/pkgconfig
 
+# Set mirror for speed up
+RUN \
+sed -i 's/^deb/#deb/g' /etc/apt/sources.list && \
+echo " \
+deb http://mirrors.aliyun.com/debian/ stretch main non-free contrib \
+deb-src http://mirrors.aliyun.com/debian/ stretch main non-free contrib \
+deb http://mirrors.aliyun.com/debian-security stretch/updates main \
+deb-src http://mirrors.aliyun.com/debian-security stretch/updates main \
+deb http://mirrors.aliyun.com/debian/ stretch-updates main non-free contrib \
+deb-src http://mirrors.aliyun.com/debian/ stretch-updates main non-free contrib \
+deb http://mirrors.aliyun.com/debian/ stretch-backports main non-free contrib \
+deb-src http://mirrors.aliyun.com/debian/ stretch-backports main non-free contrib \
+" >> /etc/apt/sources.list
+
 # first copy the fixup mirrors script, keep the script around
 COPY build_scripts/fixup-mirrors.sh /usr/local/sbin/fixup-mirrors
 
-# setup entrypoint, this will wrap commands with `linux32` with i686 images
-COPY build_scripts/install-entrypoint.sh build_scripts/update-system-packages.sh /build_scripts/
+# Useless to us
+COPY build_scripts/install-entrypoint.sh /build_scripts/
 RUN bash /build_scripts/install-entrypoint.sh && rm -rf /build_scripts
 COPY manylinux-entrypoint /usr/local/bin/manylinux-entrypoint
 ENTRYPOINT ["manylinux-entrypoint"]
@@ -146,7 +167,7 @@ COPY --from=build_cpython310 /opt/_internal /opt/_internal/
 RUN hardlink -cv /opt/_internal
 
 
-FROM runtime_base
+FROM runtime_base AS  plcnext_base
 COPY --from=build_git /manylinux-rootfs /
 COPY --from=build_swig /manylinux-rootfs /
 COPY --from=build_cpython /manylinux-rootfs /
@@ -165,5 +186,10 @@ COPY build_scripts/requirements-tools/* /build_scripts/requirements-tools/
 RUN manylinux-entrypoint /build_scripts/finalize.sh && rm -rf /build_scripts
 
 ENV SSL_CERT_FILE=/opt/_internal/certs.pem
+
+FROM plcnext_base
+COPY build_scripts/installer /tmp/installer
+COPY build_scripts/cmake /tmp/cmake
+RUN /tmp/installer/install-pyinstaller.sh && /tmp/cmake/install-cmake.sh && rm -r /tmp/*
 
 CMD ["/bin/bash"]
